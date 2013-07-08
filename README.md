@@ -8,4 +8,4 @@ There are three projects here: *pie*, *server* and *core*
 * **server** is the master where all Pie-s connect to
 * **core** is where common code is
 
-To build the bundle, do <code>sbt pie/assemble</code> or <code>sbt server/assemble</code>
+To build the bundle, do <code>sbt pie/assembly</code> or <code>sbt server/assembly</code>
