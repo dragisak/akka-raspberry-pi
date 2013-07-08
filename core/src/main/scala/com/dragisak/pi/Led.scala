@@ -5,4 +5,6 @@ object Led {
   case object OFF
   case object TOGGLE
   case object BLINK
+  case object Ping
+  case object Pong
 }

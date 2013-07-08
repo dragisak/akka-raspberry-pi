@@ -1,27 +1,59 @@
 package com.dragisak.pi
 
-import akka.actor.{Props, ActorSystem}
+import akka.actor._
 import com.typesafe.config.ConfigFactory
 
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
+import akka.cluster.ClusterEvent.{MemberUp, ClusterDomainEvent}
+import akka.cluster.Cluster
 
 object Server extends App {
 
-  Console.println(Console.GREEN + "Starting .. ")
 
   val conf = ConfigFactory.load
 
-  val system = ActorSystem("Server", conf)
+  val system = ActorSystem("PieServer", conf)
 
-  val pieAddress = conf.getString("pi.host")
 
-  val actor = system.actorSelection(s"akka.tcp://PieActors@$pieAddress:2552/user/led")
+  val ticker = system.actorOf(Props[Ticker], name = "ticker")
 
-  actor ! Led.ON
-
-  while (true) {
-    Thread.sleep(500)
-    actor ! Led.TOGGLE
-  }
-
+  Cluster(system).subscribe(ticker, classOf[ClusterDomainEvent])
 
 }
+
+class Ticker extends Actor with ActorLogging {
+
+  implicit val ctx :ExecutionContext = context.dispatcher
+
+  var ticker :Cancellable = _
+
+
+  def receive = {
+
+    case Led.Pong ⇒
+      val led = sender
+      log.info("Got Pong from {}", led)
+      context watch led
+
+      ticker = context.system.scheduler.schedule(0 milliseconds,
+          500 milliseconds,
+          led,
+          Led.TOGGLE)
+
+    case Terminated(x) ⇒
+      log.info("Terminating {}", x)
+      ticker.cancel
+
+
+    case MemberUp(member) if member.roles.contains("pi")⇒
+      log.info("Raspberry Pi is up: {}", member.address)
+      val led = context.actorSelection(RootActorPath(member.address) / "user" / "led")
+      led ! Led.Ping
+
+  }
+}
+
+
+
+

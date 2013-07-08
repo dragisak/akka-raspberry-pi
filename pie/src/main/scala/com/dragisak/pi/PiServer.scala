@@ -1,23 +1,30 @@
 package com.dragisak.pi
 
-import akka.actor.{Props, ActorSystem}
+import akka.actor.{Actor, ActorLogging, Props, ActorSystem}
 import com.pi4j.io.gpio.{RaspiPin, GpioFactory}
 import com.typesafe.config.ConfigFactory
+import akka.cluster.ClusterEvent._
+import akka.cluster.ClusterEvent.CurrentClusterState
+import akka.cluster.ClusterEvent.MemberRemoved
+import akka.cluster.ClusterEvent.MemberUp
+import akka.cluster.ClusterEvent.UnreachableMember
+import akka.cluster.Cluster
 
 
 object PiServer extends App {
 
-  Console.println(Console.GREEN + "Starting .. ")
-
   val conf = ConfigFactory.load
-
-  val system = ActorSystem("PieActors", conf)
 
   val gpio = GpioFactory.getInstance()
   val pin = getPin(conf.getInt("pi.led"))
   val led = gpio.provisionDigitalOutputPin(pin)
 
+  val system = ActorSystem("PieServer", conf)
+
   val actor = system.actorOf(Props(new LedSwitcher(led)), name = "led")
+
+
+  // Cluster(system).subscribe(actor, classOf[ClusterDomainEvent])
 
   actor ! Led.OFF
 

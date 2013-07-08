@@ -1,14 +1,17 @@
 package com.dragisak.pi
 
-import akka.actor.Actor
+import akka.actor.{RootActorPath, ActorLogging, Actor}
 import com.pi4j.io.gpio.GpioPinDigitalOutput
+import Led._
+import akka.cluster.ClusterEvent.MemberUp
 
-class LedSwitcher(led :GpioPinDigitalOutput) extends Actor {
+class LedSwitcher(led :GpioPinDigitalOutput) extends Actor with ActorLogging {
 
   def receive = {
-    case Led.ON       ⇒ led.high
-    case Led.OFF      ⇒ led.low
-    case Led.TOGGLE   ⇒ led.toggle
-    case Led.BLINK    ⇒ led.blink(500)
+    case ON       ⇒ led.high
+    case OFF      ⇒ led.low
+    case TOGGLE   ⇒ led.toggle
+    case BLINK    ⇒ led.blink(500)
+    case Ping     ⇒ sender ! Pong
   }
 }
